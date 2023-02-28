@@ -251,10 +251,10 @@ class DifferentiableOptimizer(_abc.ABC):
         new_params = params[:]
         for group, mapping in zip(self.param_groups, self._group_to_param_list):
             for p, index in zip(group['params'], mapping):
-                if self._track_higher_grads:
-                    new_params[index] = p
-                else:
-                    new_params[index] = p.detach().requires_grad_()
+                # regardless of whether we are tracking higher grads or not,
+                # we keep the previous param in the graph, so that we can 
+                # compute the grad of the query loss wrt to learning rates
+                new_params[index] = p
 
         if self._fmodel is not None:
             self._fmodel.update_params(new_params)
@@ -1043,7 +1043,7 @@ def apply_trainable_opt_params(
                 "parameter groups.".format(k)
             )
         for group_idx, group in enumerate(opt.param_groups):
-            replacement = v[0] if len(v) is 1 else v[group_idx]
+            replacement = v[0] if len(v) == 1 else v[group_idx]
             group[k] = _recursive_apply(replacement, group[k])
 
 
